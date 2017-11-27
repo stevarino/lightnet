@@ -84,7 +84,6 @@ class RfcommServer(object):
                         traceback.print_exc()
                     except (KeyboardInterrupt, SystemExit, StopIteration):
                         raise
-                    finally:
             print("disconnected")
             self.client_sock = None
 
