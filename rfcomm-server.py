@@ -4,7 +4,7 @@
 #
 # $Id: rfcomm-server.py 518 2007-08-10 07:20:07Z albert $
 
-from bluetooth import (BluetoothSocket, RFCOMM, PORT_ANY, SERIAL_PORT_PROFILE.
+from bluetooth import (BluetoothSocket, RFCOMM, PORT_ANY, SERIAL_PORT_PROFILE,
                        SERIAL_PORT_CLASS)
 import socket
 
