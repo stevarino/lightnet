@@ -58,7 +58,7 @@ class RfcommServer(object):
         '''Send a bluetooth response if connected.'''
         if not self.client_sock:
             return
-        self.client_sock.send(msg)
+        self.client_sock.send(msg+'\n')
 
     def command_generator(self):
         '''Establishes a client connection, yielding any commands given and
@@ -73,21 +73,20 @@ class RfcommServer(object):
                 continue
             print("Accepted connection from ", client_info)
             self.client_sock = client_sock
-
-            while True:
-                try:
-                    data = client_sock.recv(1024)
-                    if not data:
-                        raise StopIteration
-                    yield data
-                except IOError:
-                    traceback.print_exc()
-                except (KeyboardInterrupt, SystemExit, StopIteration):
-                    raise
-                finally:
-                    print("disconnected")
-                    self.client_sock = None
-                    client_sock.close()
+            with contextlib.closing(client_sock):
+                while True:
+                    try:
+                        data = client_sock.recv(1024)
+                        if not data:
+                            raise StopIteration
+                        yield data
+                    except IOError:
+                        traceback.print_exc()
+                    except (KeyboardInterrupt, SystemExit, StopIteration):
+                        raise
+                    finally:
+            print("disconnected")
+            self.client_sock = None
 
     def close(self):
         '''Closes the server connection if open.'''
