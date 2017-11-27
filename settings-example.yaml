@@ -1,0 +1,8 @@
+# Save this file as settings.yaml
+broadcast:
+  ip: '255.255.255.255'
+  port: 54545
+whitelist: [
+  # Add bluetooth mac addresses, or leave empty to disable
+  # "00:11:22:33:aa:bb"
+]

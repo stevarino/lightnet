@@ -1,1 +1,3 @@
 PyBluez
+pylint
+PyYAML
