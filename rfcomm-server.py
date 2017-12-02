@@ -1,24 +1,39 @@
 '''
 RFCOMM Server - Serial Over Bluetooth to UDP Broadcast
 Based on https://github.com/karulis/pybluez/blob/master/examples/simple/rfcomm-server.py
+
+Datagram layout:
+    message identifier (a-zA-Z0-9_) ("!" indicates do not cache)
+    space
+    target list (valid name a-zA-Z0-9_) - space seperated, colon terminated
+        - "!" indicates all
+    command
+    optional arguments prepended by space
+
+    "01 a b c: rainbow"
+    "02 a: fireflies foobar baz"
+
 '''
 
 import argparse
 import contextlib
+import os
 import os.path as path
 import socket
+import subprocess
 import traceback
-import yaml
 
-from bluetooth import (BluetoothSocket, RFCOMM, PORT_ANY, SERIAL_PORT_PROFILE,
-                       SERIAL_PORT_CLASS, advertise_service)
+import yaml
+from bluetooth import (PORT_ANY, RFCOMM, SERIAL_PORT_CLASS,
+                       SERIAL_PORT_PROFILE, BluetoothSocket, advertise_service)
+
 
 class RfcommServer(object):
     '''An RFComm Server designed to propagate bluetooth messages to UDP broadcasts.'''
     def __init__(self, establish_bt=True):
-        folder = path.dirname(path.abspath(__file__))
+        self.folder = path.dirname(path.abspath(__file__))
         try:
-            with open(path.join(folder, 'settings.yaml')) as settings_file:
+            with open(path.join(self.folder, 'settings.yaml')) as settings_file:
                 self.settings = yaml.safe_load(settings_file)
         except FileNotFoundError:
             print("Create a settings.yaml file by copying settings-example.yaml")
@@ -49,13 +64,33 @@ class RfcommServer(object):
                           self.settings['broadcast']['port'])
         for command in gen:
             print("received [{}]".format(command))
+            if command.startswith('#'):
+                self.execute_command(command[1:].strip())
             self.broadcast_socket.sendto(command, broadcast_dest)
             self.respond('okay')
-            
         print("all done")
+
+    def execute_command(self, command):
+        '''Find and execute a command. '''
+        folder = path.join(self.folder,  'commands')
+        for filename in os.listdir(folder):
+            if filename.split('.')[0] == command:
+                break
+        else:
+            self.respond("Command '{}' not found.".format(command))
+            return
+        os.chdir(folder)
+        self.respond("Running '{}'...".format(command))
+        output = subprocess.check_output(
+            [filename], stderr=subprocess.STDOUT, universal_newlines=True)
+        if output.strip():
+            self.respond(output.strip())
+
+
 
     def respond(self, msg):
         '''Send a bluetooth response if connected.'''
+        print("Response: " + msg)
         if not self.client_sock:
             return
         self.client_sock.send(msg+'\n')
@@ -79,7 +114,7 @@ class RfcommServer(object):
                         data = client_sock.recv(1024)
                         if not data:
                             raise StopIteration
-                        yield data
+                        yield data.decode('utf-8').strip()
                     except IOError:
                         traceback.print_exc()
                     except (KeyboardInterrupt, SystemExit, StopIteration):
@@ -102,6 +137,5 @@ if __name__ == '__main__':
         server = RfcommServer(establish_bt=False)
         server.loop((c.encode('utf-8') for c in args.commands))
     else:
-        server = RfcommServer()
-        with contextlib.closing(server):
+        with contextlib.closing(RfcommServer()) as server:
             server.loop()
