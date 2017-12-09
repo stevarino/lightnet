@@ -66,13 +66,14 @@ class RfcommServer(object):
             print("received [{}]".format(command))
             if command.startswith('#'):
                 self.execute_command(command[1:].strip())
-            self.broadcast_socket.sendto(command, broadcast_dest)
+                continue
+            self.broadcast_socket.sendto(command.encode(), broadcast_dest)
             self.respond('okay')
         print("all done")
 
     def execute_command(self, command):
         '''Find and execute a command. '''
-        folder = path.join(self.folder,  'commands')
+        folder = path.join(self.folder, 'commands')
         for filename in os.listdir(folder):
             if filename.split('.')[0] == command:
                 break
@@ -90,7 +91,7 @@ class RfcommServer(object):
 
     def respond(self, msg):
         '''Send a bluetooth response if connected.'''
-        print("Response: " + msg)
+        print("> " + msg.replace('\n', '\n > '))
         if not self.client_sock:
             return
         self.client_sock.send(msg+'\n')
@@ -135,7 +136,7 @@ if __name__ == '__main__':
 
     if args.commands:
         server = RfcommServer(establish_bt=False)
-        server.loop((c.encode('utf-8') for c in args.commands))
+        server.loop(args.commands)
     else:
         with contextlib.closing(RfcommServer()) as server:
             server.loop()
