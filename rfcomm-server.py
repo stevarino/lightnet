@@ -102,7 +102,7 @@ class RfcommServer(object):
         while True:
             print("Waiting for connection on RFCOMM channel")
             client_sock, client_info = self.server_sock.accept()
-            if whitelist and not client_info in whitelist:
+            if whitelist and not client_info[0] in whitelist:
                 print("Denied connection from ", client_info)
                 client_sock.close()
                 continue
